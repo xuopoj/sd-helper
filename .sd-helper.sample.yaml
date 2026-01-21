@@ -1,0 +1,43 @@
+# SD-Helper Configuration Sample
+# Copy to ~/.config/sd-helper/config.yaml
+
+# Default profile to use when --profile is not specified
+default_profile: default
+
+# Profile configurations
+profiles:
+  # Default profile - public cloud example
+  private:
+    # IAM credentials (shared across all services)
+    username: your_username
+    password: your_password
+    domain_name: your_domain
+    project_name: cn-north-4
+    iam_url: https://iam.your-private-cloud.com
+
+    # LLM models configuration
+    llm:
+      default_model: qwen3  # Which model to use by default
+
+      models:
+        # ModelArts deployed model example
+        chatglm:
+          endpoint: https://xxx.apig.cn-north-4.huaweicloud.com/v1/infers/xxx
+          type: modelarts
+          temperature: 0.7
+          max_tokens: 2048
+
+        # Pangu API example
+        pangu:
+          endpoint: https://pangu.cn-north-4.myhuaweicloud.com/v1/chat/completions
+          type: pangu
+          temperature: 0.9
+          max_tokens: 4096
+
+        # Model with custom system prompt
+        code-assistant:
+          endpoint: https://xxx.apig.cn-north-4.huaweicloud.com/v1/infers/yyy
+          type: modelarts
+          temperature: 0.2
+          max_tokens: 8192
+          system: "You are a helpful coding assistant. Provide concise, correct code."
