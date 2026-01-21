@@ -17,3 +17,5 @@ wheels/
 
 # Collected debug data
 .sd-helper-data/
+
+.credential
