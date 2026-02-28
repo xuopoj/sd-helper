@@ -1,33 +1,39 @@
 # SD-Helper Configuration Sample
-# Copy to ~/.config/sd-helper/config.yaml
+# Copy to ~/.sd-helper.yaml or place in project directory
 
 # Default profile to use when --profile is not specified
 default_profile: default
 
 # Profile configurations
 profiles:
-  # Default profile - public cloud example
-  private:
-    # IAM credentials (shared across all services)
-    username: your_username
-    password: your_password
-    domain_name: your_domain
-    project_name: cn-north-4
-    iam_url: https://iam.your-private-cloud.com
+  default:
+    # IAM credentials
+    username: <your-username>
+    password: <your-password>
+    domain_name: <your-domain>
+    project_name: <your-project>       # e.g. cn-north-4_myproject
+    iam_url: https://iam.cn-north-4.myhuaweicloud.com
 
     # LLM models configuration
     llm:
-      default_model: qwen3  # Which model to use by default
+      default_model: qwen3-32b
 
       models:
-        # ModelArts deployed model example
-        chatglm:
-          endpoint: https://xxx.apig.cn-north-4.huaweicloud.com/v1/infers/xxx
+        # ModelArts deployed model
+        qwen3-32b:
+          endpoint: https://<apig-endpoint>/v1/infers/<model-id>/v1/chat/completions
           type: modelarts
           temperature: 0.7
           max_tokens: 2048
 
-        # Pangu API example
+        # Vision/multimodal model (vLLM)
+        qwen3-vl-32b:
+          endpoint: https://<apig-endpoint>/v1/infers/<model-id>/v1/chat/completions
+          type: vl
+          temperature: 0.7
+          max_tokens: 2048
+
+        # Pangu API
         pangu:
           endpoint: https://pangu.cn-north-4.myhuaweicloud.com/v1/chat/completions
           type: pangu
@@ -36,8 +42,16 @@ profiles:
 
         # Model with custom system prompt
         code-assistant:
-          endpoint: https://xxx.apig.cn-north-4.huaweicloud.com/v1/infers/yyy
+          endpoint: https://<apig-endpoint>/v1/infers/<model-id>/v1/chat/completions
           type: modelarts
           temperature: 0.2
           max_tokens: 8192
           system: "You are a helpful coding assistant. Provide concise, correct code."
+
+    # Docker image upload configuration
+    docker:
+      assets_file: 资产清单.txt        # 资产清单文件，只处理其中的 镜像 分区
+      swr:
+        endpoint: swr.cn-north-4.myhuaweicloud.com
+        org: <your-swr-org>            # e.g. com-huaweicloud-dataengineering
+      cleanup_after_push: false        # 设为 true 可在推送后删除本地镜像
