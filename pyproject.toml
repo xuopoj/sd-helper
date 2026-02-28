@@ -1,6 +1,6 @@
 [project]
 name = "sd-helper-cli"
-version = "0.1.4"
+version = "0.1.5"
 description = "CLI tool for Huawei Cloud Service Delivery Engineers"
 readme = "README.md"
 requires-python = ">=3.9"

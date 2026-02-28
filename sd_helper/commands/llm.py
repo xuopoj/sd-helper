@@ -266,7 +266,7 @@ def _send_chat(
 
 OCR_PROMPT = (
     "以下两张图片是同一张标签的正向和旋转180度版本。"
-    "标签黑色方块上有两组手写白色数字：短码（2位+空格+3位，如'91 403'）和长码（6位连续，如'266017'）。"
+    "标签黑色方块上有两组手写白色数字：短码（2位+空格+3位，如'91 403'）和长码（6位连续，如'266017'，长码前两位代表年份，一般为25或26等）。"
     "请判断哪张是正向（数字笔画自然可读），并从正向图片中识别数字。"
     "只返回JSON，格式为：{\"short_code\": \"XX XXX\", \"long_code\": \"XXXXXX\"}"
 )
@@ -328,12 +328,12 @@ def ocr(images, model, profile, no_verify, debug):
         if has_pillow:
             path = Path(image_path)
             img = PILImage.open(path)
-            mime = img.format and f"image/{img.format.lower()}" or "image/jpeg"
+            mime = "image/jpeg"
             buf_normal = io.BytesIO()
-            img.save(buf_normal, format=img.format or "JPEG")
+            img.save(buf_normal, format="JPEG", quality=95)
             url_normal = bytes_to_data_url(buf_normal.getvalue(), mime)
             buf_rotated = io.BytesIO()
-            img.rotate(180).save(buf_rotated, format=img.format or "JPEG")
+            img.rotate(180).save(buf_rotated, format="JPEG", quality=95)
             url_rotated = bytes_to_data_url(buf_rotated.getvalue(), mime)
             messages = [build_vision_message(prompt, [url_normal, url_rotated])]
         else:
