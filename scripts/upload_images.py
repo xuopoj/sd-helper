@@ -246,7 +246,17 @@ def validate(manifest_file: str, directory: str):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Upload MAS images to SWR")
+    parser = argparse.ArgumentParser(
+        description="Upload MAS images to SWR",
+        epilog=(
+            "Run in background:\n"
+            "  nohup python upload_images.py --config config.yaml --dir /path/to/files > upload.log 2>&1 &\n"
+            "  echo $!                   # note the PID\n"
+            "  tail -f upload.log        # follow live output\n"
+            "  cat .progress.json        # check per-image status"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument("--config", default="config.yaml", help="Config file (default: config.yaml)")
     parser.add_argument("--dir", default=".", help="Directory containing asset files (default: .)")
     parser.add_argument("--dry-run", action="store_true", help="Print commands without executing")
