@@ -1,5 +1,7 @@
 """Data collector for offline debugging."""
 
+from __future__ import annotations
+
 import platform
 import socket
 from datetime import datetime

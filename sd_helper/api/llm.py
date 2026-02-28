@@ -1,5 +1,7 @@
 """LLM service client for ModelArts and Pangu models."""
 
+from __future__ import annotations
+
 import base64
 import mimetypes
 from dataclasses import dataclass

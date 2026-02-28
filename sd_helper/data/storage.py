@@ -1,5 +1,7 @@
 """Local storage for collected data."""
 
+from __future__ import annotations
+
 import json
 from datetime import datetime
 from pathlib import Path

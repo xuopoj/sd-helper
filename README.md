@@ -4,8 +4,31 @@
 
 ## 安装
 
+**在线安装：**
+
 ```bash
 pip install sd-helper-cli
+```
+
+**离线安装（服务器无外网）：**
+
+在有网络的机器上下载依赖包：
+
+```bash
+# 默认 ARM64 / Python 3.9，可通过参数调整
+bash scripts/download_wheels.sh
+bash scripts/download_wheels.sh --platform manylinux2014_x86_64 --python-version 3.10
+
+# 将生成的 sd-helper-offline.tar.gz 传输到服务器
+scp sd-helper-offline.tar.gz user@server:/tmp/
+```
+
+在服务器上安装到 virtualenv：
+
+```bash
+bash install.sh --archive /tmp/sd-helper-offline.tar.gz
+source ~/.venv/sd-helper/bin/activate
+sd-helper --version
 ```
 
 ## 功能模块
