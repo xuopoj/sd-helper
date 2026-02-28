@@ -21,6 +21,7 @@ class ModelConfig:
     max_tokens: int = 2048
     system: str | None = None
     verify_ssl: bool = True
+    ocr_prompt: str | None = None
 
     @classmethod
     def from_dict(cls, name: str, data: dict) -> "ModelConfig":
@@ -32,6 +33,7 @@ class ModelConfig:
             max_tokens=data.get("max_tokens", 2048),
             system=data.get("system"),
             verify_ssl=data.get("verify_ssl", True),
+            ocr_prompt=data.get("ocr_prompt"),
         )
 
 

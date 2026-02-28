@@ -79,6 +79,33 @@ sd-helper llm chat -i image.jpg "描述这张图片"
 
 # 交互式对话（进入 TUI 界面）
 sd-helper llm chat
+
+# OCR：识别图片中的手写数字（短码 + 长码）
+sd-helper llm ocr image.jpg
+sd-helper llm ocr *.jpg
+```
+
+输出为 JSON 数组，每张图片对应一条记录：
+
+```json
+[
+  {
+    "short_code": "36 202",
+    "long_code": "269202",
+    "file": "image.jpg"
+  }
+]
+```
+
+OCR 提示词默认内置，也可在模型配置中自定义：
+
+```yaml
+llm:
+  models:
+    qwen3-vl-32b:
+      endpoint: https://...
+      type: vl
+      ocr_prompt: "识别图片中的文字，只返回 JSON：{\"result\": \"...\"}"
 ```
 
 ### Docker 镜像管理

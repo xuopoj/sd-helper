@@ -68,7 +68,8 @@ def llm_list(profile):
 @click.option("--image", "-i", "images", multiple=True, help="Image file path or URL (vLLM vision format, can repeat)")
 @click.option("--no-verify", is_flag=True, help="Disable SSL certificate verification")
 @click.option("--debug", is_flag=True, help="Print debug info (request payload)")
-def chat(message, model, endpoint, profile, temperature, max_tokens, no_stream, system, files, images, no_verify, debug):
+@click.option("--json", "as_json", is_flag=True, help="Ask model to respond in JSON format")
+def chat(message, model, endpoint, profile, temperature, max_tokens, no_stream, system, files, images, no_verify, debug, as_json):
     """Chat with an LLM model.
 
     If MESSAGE is provided, sends a single message and exits.
@@ -144,6 +145,8 @@ def chat(message, model, endpoint, profile, temperature, max_tokens, no_stream, 
 
     if message:
         full_message = file_context + message if file_context else message
+        if as_json:
+            full_message += "\n\nRespond in JSON format only, no extra explanation."
         if images:
             messages.append(build_vision_message(full_message, list(images)))
         else:
@@ -183,6 +186,7 @@ def _send_chat(
     max_tokens: int,
     stream: bool = True,
     debug: bool = False,
+    silent: bool = False,
 ) -> str | None:
     """Send chat request and display response."""
     if debug:
@@ -236,10 +240,12 @@ def _send_chat(
                 content = response["text"]
 
             if content:
-                click.echo(f"Assistant> {content}")
+                if not silent:
+                    click.echo(f"Assistant> {content}")
                 return content
             else:
-                click.echo(f"Response: {response}")
+                if not silent:
+                    click.echo(f"Response: {response}")
                 return None
 
     except KeyboardInterrupt:
@@ -256,6 +262,74 @@ def _send_chat(
     except Exception as e:
         click.echo(f"\nError: {e}", err=True)
         return None
+
+
+OCR_PROMPT = (
+    "图片中黑色方块上有两组手写白色数字，图片可能是倒置的。"
+    "请识别所有数字，其中：短码格式为2位数字+空格+3位数字（如'36 202'），"
+    "长码格式为6位连续数字（如'269202'）。"
+    "如图片倒置请先旋转180度再识别。"
+    "只返回JSON，格式为：{\"short_code\": \"XX XXX\", \"long_code\": \"XXXXXX\"}"
+)
+
+
+@llm.command()
+@click.argument("images", nargs=-1, required=True, type=click.Path(exists=True))
+@click.option("--model", "-m", default=None, help="Model name (from config)")
+@click.option("--profile", default=None, help="IAM profile for authentication")
+@click.option("--no-verify", is_flag=True, help="Disable SSL certificate verification")
+@click.option("--debug", is_flag=True, help="Print debug info (request payload)")
+def ocr(images, model, profile, no_verify, debug):
+    """Extract handwritten numbers from images using vision model.
+
+    Recognizes two number formats on dark label surfaces:
+      short_code: 2-digit + space + 3-digit  (e.g. "36 202")
+      long_code:  6-digit continuous          (e.g. "269202")
+
+    Handles inverted/upside-down images automatically.
+
+    \b
+    Examples:
+      sd-helper llm ocr image.jpg
+      sd-helper llm ocr *.jpg
+      sd-helper llm ocr image.jpg --debug
+    """
+    config = load_config(profile)
+    model_config = get_model_config(config, model)
+    if not model_config:
+        raise click.ClickException("No vision model configured. Use --model or set default_model in config.")
+
+    try:
+        token_info = get_token_from_config(profile=profile)
+        token = token_info["token"]
+    except ValueError as e:
+        raise click.ClickException(str(e))
+
+    effective_verify_ssl = False if no_verify else model_config.verify_ssl
+    client = LLMClient(
+        endpoint=model_config.endpoint,
+        token=token,
+        model_type=model_config.type,
+        verify_ssl=effective_verify_ssl,
+    )
+
+    prompt = model_config.ocr_prompt or OCR_PROMPT
+
+    results = []
+    for image_path in images:
+        messages = [build_vision_message(prompt, [image_path])]
+        response = _send_chat(client, messages, temperature=0.1, max_tokens=256, stream=False, debug=debug, silent=True)
+        # Strip markdown code fences if present
+        if response:
+            response = response.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        try:
+            data = json.loads(response) if response else {}
+        except json.JSONDecodeError:
+            data = {"raw": response}
+        data["file"] = Path(image_path).name
+        results.append(data)
+
+    click.echo(json.dumps(results, ensure_ascii=False, indent=2))
 
 
 @llm.command()
