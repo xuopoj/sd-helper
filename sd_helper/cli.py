@@ -20,7 +20,7 @@ from .auth import (
     save_local_config,
     set_default_profile,
 )
-from .api import LLMClient, get_model_config, list_models
+from .api import LLMClient, build_vision_message, get_model_config, list_models
 from .data import (
     DataCollector,
     TemplateRunner,
@@ -465,9 +465,10 @@ def llm_list(profile):
 @click.option("--no-stream", is_flag=True, help="Disable streaming output")
 @click.option("--system", "-s", default=None, help="System message")
 @click.option("--file", "-f", "files", multiple=True, type=click.Path(exists=True), help="File(s) to include in context")
+@click.option("--image", "-i", "images", multiple=True, help="Image file path or URL (vLLM vision format, can repeat)")
 @click.option("--no-verify", is_flag=True, help="Disable SSL certificate verification")
 @click.option("--debug", is_flag=True, help="Print debug info (request payload)")
-def chat(message, model, endpoint, profile, temperature, max_tokens, no_stream, system, files, no_verify, debug):
+def chat(message, model, endpoint, profile, temperature, max_tokens, no_stream, system, files, images, no_verify, debug):
     """Chat with an LLM model.
 
     If MESSAGE is provided, sends a single message and exits.
@@ -480,6 +481,8 @@ def chat(message, model, endpoint, profile, temperature, max_tokens, no_stream, 
         sd-helper llm chat -m pangu "Hello"
         sd-helper llm chat -f code.py "Explain this code"
         sd-helper llm chat -f data.json -f schema.json "Validate the data"
+        sd-helper llm chat -i photo.jpg "Describe this image"
+        sd-helper llm chat -i https://example.com/img.png "What do you see?"
     """
     config = load_config(profile)
 
@@ -551,58 +554,41 @@ def chat(message, model, endpoint, profile, temperature, max_tokens, no_stream, 
         if file_parts:
             file_context = "\n\n".join(file_parts) + "\n\n"
 
-    # Send first message if provided
+    # Send first message if provided — one-shot mode, no TUI
     if message:
         full_message = file_context + message if file_context else message
-        messages.append({"role": "user", "content": full_message})
+        if images:
+            messages.append(build_vision_message(full_message, list(images)))
+        else:
+            messages.append({"role": "user", "content": full_message})
         response = _send_chat(client, messages, effective_temp, effective_max_tokens, stream=not no_stream, debug=debug)
         if response:
             messages.append({"role": "assistant", "content": response})
         click.echo()
+        return
+
     elif file_context:
-        # Add file context as initial message
         messages.append({"role": "user", "content": file_context.rstrip()})
         messages.append({"role": "assistant", "content": "I've received the file content. How can I help you with it?"})
+    elif images:
+        # Images without a message — inject as initial context, then enter TUI
+        messages.append(build_vision_message("I've attached image(s) for context.", list(images)))
+        messages.append({"role": "assistant", "content": "I can see the image(s). How can I help you?"})
 
-    # Interactive mode - continue conversation
-    click.echo("Type /clear to clear history, /exit to quit, Ctrl+C to cancel output.")
-    if debug:
-        click.echo(f"Model: {model_name} ({model_type})")
-        click.echo(f"Endpoint: {endpoint}")
-
-    # Track initial context for /clear
+    # Interactive TUI mode
     initial_messages = messages.copy()
-
-    while True:
-        try:
-            user_input = click.prompt("You", prompt_suffix="> ")
-
-            # Handle commands
-            if user_input.lower() in ("/exit", "/quit", "exit", "quit", "q"):
-                break
-            if user_input.lower() == "/clear":
-                messages.clear()
-                messages.extend(initial_messages)
-                click.echo("History cleared.")
-                continue
-
-            messages.append({"role": "user", "content": user_input})
-            response = _send_chat(
-                client, messages, effective_temp, effective_max_tokens, stream=not no_stream, debug=debug
-            )
-            if response:
-                messages.append({"role": "assistant", "content": response})
-            else:
-                # Remove the user message if no response (e.g., cancelled)
-                messages.pop()
-            click.echo()
-
-        except click.exceptions.Abort:
-            click.echo("\nGoodbye!")
-            break
-        except KeyboardInterrupt:
-            click.echo("\nGoodbye!")
-            break
+    from .tui import ChatApp  # deferred import — no textual needed for other cmds
+    app = ChatApp(
+        client=client,
+        messages=messages,
+        initial_messages=initial_messages,
+        model_name=model_name,
+        model_type=model_type,
+        temperature=effective_temp,
+        max_tokens=effective_max_tokens,
+        debug=debug,
+    )
+    app.run()
 
 
 def _send_chat(
@@ -709,7 +695,7 @@ def _send_chat(
 @click.argument("model_name")
 @click.option("--endpoint", "-e", prompt="LLM endpoint URL", help="LLM endpoint URL")
 @click.option("--type", "-t", "model_type", default="modelarts",
-              type=click.Choice(["modelarts", "pangu"]), help="Model type")
+              type=click.Choice(["modelarts", "pangu", "vl"]), help="Model type")
 @click.option("--temperature", default=0.7, type=float, help="Default temperature")
 @click.option("--max-tokens", default=2048, type=int, help="Default max tokens")
 @click.option("--system", "-s", default=None, help="Default system message")

@@ -1,6 +1,9 @@
 """LLM service client for ModelArts and Pangu models."""
 
+import base64
+import mimetypes
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Generator
 
 import httpx
@@ -22,7 +25,7 @@ class ModelConfig:
         return cls(
             name=name,
             endpoint=data["endpoint"],
-            type=data.get("type", "modelarts"),
+            type=data.get("type", "modelarts"),  # modelarts | pangu | vl
             temperature=data.get("temperature", 0.7),
             max_tokens=data.get("max_tokens", 2048),
             system=data.get("system"),
@@ -69,6 +72,31 @@ def get_model_config(config: dict, model_name: str | None = None) -> ModelConfig
         return None
 
     return ModelConfig.from_dict(model_name, models[model_name])
+
+
+def build_vision_message(text: str, images: list[str]) -> dict:
+    """
+    Build a vLLM-format user message with image(s) and text.
+
+    Each entry in `images` is either:
+    - A local file path  → encoded as base64 data URL
+    - An http(s) URL     → passed through as-is
+
+    Returns a message dict: {"role": "user", "content": [...]}.
+    """
+    content = []
+    for img in images:
+        if img.startswith("http://") or img.startswith("https://"):
+            url = img
+        else:
+            path = Path(img)
+            mime, _ = mimetypes.guess_type(path.name)
+            mime = mime or "image/jpeg"
+            data = base64.b64encode(path.read_bytes()).decode()
+            url = f"data:{mime};base64,{data}"
+        content.append({"type": "image_url", "image_url": {"url": url}})
+    content.append({"type": "text", "text": text})
+    return {"role": "user", "content": content}
 
 
 class LLMClient:
