@@ -1,0 +1,7 @@
+assets_file: 资产清单.txt   # manifest file with 算子 / 镜像 sections
+
+swr:
+  endpoint: swr.cn-north-4.myhuaweicloud.com   # SWR endpoint for your region
+  org: com-huaweicloud-dataengineering          # SWR organization name
+
+cleanup_after_push: false   # set true to docker rmi after push (saves disk space)
