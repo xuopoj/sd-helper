@@ -63,7 +63,7 @@ profiles:
 
 
 @click.group()
-@click.version_option(version="0.1.3")
+@click.version_option(version="0.1.4")
 def cli():
     """SD-Helper: CLI tool for Huawei Cloud Service Delivery Engineers."""
     pass

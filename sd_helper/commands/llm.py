@@ -16,7 +16,7 @@ from ..auth import (
     save_global_config,
     save_local_config,
 )
-from ..api import LLMClient, build_vision_message, get_model_config, list_models
+from ..api import LLMClient, build_vision_message, bytes_to_data_url, image_to_data_url, get_model_config, list_models
 
 
 @click.group()
@@ -265,10 +265,9 @@ def _send_chat(
 
 
 OCR_PROMPT = (
-    "图片中黑色方块上有两组手写白色数字，图片可能是倒置的。"
-    "请识别所有数字，其中：短码格式为2位数字+空格+3位数字（如'36 202'），"
-    "长码格式为6位连续数字（如'269202'）。"
-    "如图片倒置请先旋转180度再识别。"
+    "以下两张图片是同一张标签的正向和旋转180度版本。"
+    "标签黑色方块上有两组手写白色数字：短码（2位+空格+3位，如'91 403'）和长码（6位连续，如'266017'）。"
+    "请判断哪张是正向（数字笔画自然可读），并从正向图片中识别数字。"
     "只返回JSON，格式为：{\"short_code\": \"XX XXX\", \"long_code\": \"XXXXXX\"}"
 )
 
@@ -315,9 +314,30 @@ def ocr(images, model, profile, no_verify, debug):
 
     prompt = model_config.ocr_prompt or OCR_PROMPT
 
+    try:
+        from PIL import Image as PILImage
+        import io
+        has_pillow = True
+    except ImportError:
+        has_pillow = False
+        if debug:
+            click.echo("[DEBUG] Pillow not installed, sending single orientation", err=True)
+
     results = []
     for image_path in images:
-        messages = [build_vision_message(prompt, [image_path])]
+        if has_pillow:
+            path = Path(image_path)
+            img = PILImage.open(path)
+            mime = img.format and f"image/{img.format.lower()}" or "image/jpeg"
+            buf_normal = io.BytesIO()
+            img.save(buf_normal, format=img.format or "JPEG")
+            url_normal = bytes_to_data_url(buf_normal.getvalue(), mime)
+            buf_rotated = io.BytesIO()
+            img.rotate(180).save(buf_rotated, format=img.format or "JPEG")
+            url_rotated = bytes_to_data_url(buf_rotated.getvalue(), mime)
+            messages = [build_vision_message(prompt, [url_normal, url_rotated])]
+        else:
+            messages = [build_vision_message(prompt, [image_path])]
         response = _send_chat(client, messages, temperature=0.1, max_tokens=256, stream=False, debug=debug, silent=True)
         # Strip markdown code fences if present
         if response:

@@ -78,6 +78,19 @@ def get_model_config(config: dict, model_name: str | None = None) -> ModelConfig
     return ModelConfig.from_dict(model_name, models[model_name])
 
 
+def image_to_data_url(path: Path) -> str:
+    """Encode a local image file as a base64 data URL."""
+    mime, _ = mimetypes.guess_type(path.name)
+    mime = mime or "image/jpeg"
+    data = base64.b64encode(path.read_bytes()).decode()
+    return f"data:{mime};base64,{data}"
+
+
+def bytes_to_data_url(data: bytes, mime: str = "image/jpeg") -> str:
+    """Encode raw image bytes as a base64 data URL."""
+    return f"data:{mime};base64,{base64.b64encode(data).decode()}"
+
+
 def build_vision_message(text: str, images: list[str]) -> dict:
     """
     Build a vLLM-format user message with image(s) and text.
@@ -90,14 +103,10 @@ def build_vision_message(text: str, images: list[str]) -> dict:
     """
     content = []
     for img in images:
-        if img.startswith("http://") or img.startswith("https://"):
+        if img.startswith("http://") or img.startswith("https://") or img.startswith("data:"):
             url = img
         else:
-            path = Path(img)
-            mime, _ = mimetypes.guess_type(path.name)
-            mime = mime or "image/jpeg"
-            data = base64.b64encode(path.read_bytes()).decode()
-            url = f"data:{mime};base64,{data}"
+            url = image_to_data_url(Path(img))
         content.append({"type": "image_url", "image_url": {"url": url}})
     content.append({"type": "text", "text": text})
     return {"role": "user", "content": content}
