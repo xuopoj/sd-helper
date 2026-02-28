@@ -1,40 +1,127 @@
+# sd-helper
 
-## 资产管理
+华为云服务交付工程师的命令行工具，用于简化日常运维操作。
 
-ModelArts安装或升级后，需要上传算子包、算子镜像、模型资产、模型镜像等各类资源，其中算子包和资产文件需要上传到OBS中，上传之前有些需要解压缩，有些不需要，镜像上传之前需要使用docker load镜像，配置swr登陆命令和组织名等，再完成上传。
+## 安装
 
-因为资源文件很多（可能有上百个），如果手动操作耗时且容易出错，需要构建一个脚本来完成。
-
-为了有更好的适配性，构建一个独立的python脚本，不需要其他依赖，直接复制到某个节点就可以使用。
-
-### 前提条件
-
-docker镜像上传依赖docker cli，环境上应配置好了docker，并通过swr的登陆命令完成登陆。
-
-### 详细诉求
-
-1. 支持资产清单校验，保证资产完整，由文本文件提供资产清单，检查当前目录下所需资产是否完整；
-2. 通过本地配置文件配置OBS路径和ak/sk，通过任务文件配置资产列表和上传桶及路径，需要解压的资产需要指定解压策略；
-3. 支持记录上传进度，断点续传，异常日志。
-
-### 支持的资源类型
-
-#### 数据工程算子
-
-样例：
-```
-NLP_qa_cot_score-aarch64-1.3.1-xxxxxxxx.tar
-NLP_qa_quality_score-aarch64-1.3.1-xxxxxxxx.tar
+```bash
+pip install sd-helper-cli
 ```
 
-需要上传到dataengineering-model-{region_code}或dataengineering-model桶中，路径为/OPERATOR/SYS。
+## 功能模块
 
-#### 镜像
+### IAM 认证
 
-样例：
+```bash
+# 配置凭据
+sd-helper iam configure
+
+# 获取 token
+sd-helper iam token
+
+# 查看已配置的 profile
+sd-helper iam list-profiles
+
+# 设置默认 profile
+sd-helper iam set-default <profile>
 ```
-hce-arm-python3.9-custom-operator-3.8.0.xxxxxxxx-aarch64.tar
-hce-arm-python3.10-custom-operator-910c-3.8.0.xxxxxxxx-aarch64.tar
+
+### LLM 对话
+
+与 ModelArts / 盘古大模型进行对话。
+
+```bash
+# 添加模型配置
+sd-helper llm add <model-name> --endpoint <url> --type modelarts
+
+# 查看已配置的模型
+sd-helper llm list
+
+# 单次对话
+sd-helper llm chat "你好"
+
+# 携带文件上下文
+sd-helper llm chat -f code.py "解释这段代码"
+
+# 视觉模型（图片输入）
+sd-helper llm chat -i image.jpg "描述这张图片"
+
+# 交互式对话（进入 TUI 界面）
+sd-helper llm chat
 ```
 
-上传到盘古承载租户中，组织名为：com-huaweicloud-dataengineering。
+### Docker 镜像管理
+
+批量加载并推送镜像到 SWR，支持断点续传。
+
+**前提条件：** 环境已安装 docker，并完成 SWR 登录。
+
+```bash
+# 校验资产清单中的文件是否完整
+sd-helper docker upload-images --config config.yaml --dir /path/to/files --validate
+
+# 试运行（只打印命令，不执行）
+sd-helper docker upload-images --config config.yaml --dir /path/to/files --dry-run
+
+# 正式上传
+sd-helper docker upload-images --config config.yaml --dir /path/to/files
+
+# 重置所有进度（重新上传）
+sd-helper docker upload-images --reset-all
+
+# 重置指定镜像的进度
+sd-helper docker upload-images --reset "name:tag"
+```
+
+配置文件示例（`config.yaml`）：
+
+```yaml
+assets_file: 资产清单.txt        # 包含 算子 / 镜像 分区的资产清单
+
+swr:
+  endpoint: swr.cn-north-4.myhuaweicloud.com
+  org: com-huaweicloud-dataengineering
+
+cleanup_after_push: false        # 设为 true 可在推送后删除本地镜像
+```
+
+后台运行：
+
+```bash
+nohup sd-helper docker upload-images --config config.yaml --dir /path/to/files > upload.log 2>&1 &
+echo $!                  # 记录 PID
+tail -f upload.log        # 查看实时日志
+cat .progress.json        # 查看每个镜像的上传状态
+```
+
+### 数据管理
+
+离线收集和同步数据。
+
+```bash
+# 采集数据
+sd-helper data collect --name <name>
+
+# 查看已采集的数据
+sd-helper data list
+
+# 使用模板批量执行请求
+sd-helper data run <template.yaml>
+```
+
+## 独立脚本
+
+`scripts/upload_images.py` 是一个独立版本的镜像上传脚本，仅依赖 `pyyaml`，可直接复制到目标节点使用：
+
+```bash
+python upload_images.py --config config.yaml --dir /path/to/files
+```
+
+后台运行：
+
+```bash
+nohup python upload_images.py --config config.yaml --dir /path/to/files > upload.log 2>&1 &
+echo $!                  # 记录 PID
+tail -f upload.log        # 查看实时日志
+cat .progress.json        # 查看每个镜像的上传状态
+```
