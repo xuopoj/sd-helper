@@ -76,7 +76,7 @@ sd-helper docker upload-images --reset "name:tag"
 配置文件示例（`config.yaml`）：
 
 ```yaml
-assets_file: 资产清单.txt        # 包含 算子 / 镜像 分区的资产清单
+assets_file: 资产清单.txt        # 资产清单文件，只处理其中的 镜像 分区
 
 swr:
   endpoint: swr.cn-north-4.myhuaweicloud.com
