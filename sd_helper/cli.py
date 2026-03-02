@@ -6,7 +6,7 @@ from pathlib import Path
 
 import click
 
-from .commands import iam, llm, data, docker
+from .commands import iam, llm, data, docker, nisco
 
 
 SAMPLE_CONFIG = """\
@@ -63,7 +63,7 @@ profiles:
 
 
 @click.group()
-@click.version_option(version="0.1.5")
+@click.version_option(version="0.1.6")
 def cli():
     """SD-Helper: CLI tool for Huawei Cloud Service Delivery Engineers."""
     pass
@@ -90,6 +90,7 @@ cli.add_command(iam)
 cli.add_command(llm)
 cli.add_command(data)
 cli.add_command(docker)
+cli.add_command(nisco)
 
 
 if __name__ == "__main__":

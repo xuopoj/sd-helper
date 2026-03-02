@@ -108,6 +108,45 @@ llm:
       ocr_prompt: "识别图片中的文字，只返回 JSON：{\"result\": \"...\"}"
 ```
 
+### Nisco OCR
+
+从 Nisco 系统下载图片并调用多模态大模型进行 OCR 识别，结果写入 Excel。
+
+**下载图片并生成 Excel：**
+
+```bash
+# 下载指定日期范围内 result_sta=否 的记录，图片嵌入 Excel
+sd-helper nisco ocr image-download --start 2026-03-01 --end 2026-03-02
+
+# 指定输出文件和图片目录
+sd-helper nisco ocr image-download --start 2026-03-01 --end 2026-03-31 -o march.xlsx -i ./march_images
+```
+
+生成的 Excel 包含所有原始字段，以及：
+- `image_file_name` — 保存到磁盘的图片文件名
+- `image` — 嵌入的图片预览（512px）
+
+**对已下载的图片运行 OCR：**
+
+```bash
+# 使用默认模型和提示词
+sd-helper nisco ocr run nisco_ocr.xlsx
+
+# 指定模型
+sd-helper nisco ocr run nisco_ocr.xlsx -m qwen3-vl-32b
+
+# 自定义提示词
+sd-helper nisco ocr run nisco_ocr.xlsx --prompt "识别图片中的炉号，只返回JSON: {\"result\": \"...\", \"reason\": \"...\"}"
+
+# 从文件读取提示词
+sd-helper nisco ocr run nisco_ocr.xlsx --prompt-file my_prompt.txt
+```
+
+OCR 结果写回原 Excel，新增三列：
+- `ocr_raw` — 模型原始返回内容
+- `ocr_result` — 解析后的识别结果
+- `ocr_reason` — 模型说明
+
 ### Docker 镜像管理
 
 批量加载并推送镜像到 SWR，支持断点续传。
