@@ -62,7 +62,7 @@ def save_collection(
         **data,
     }
 
-    with open(file_path, "w") as f:
+    with open(file_path, "w", encoding="utf-8") as f:
         if format == "yaml":
             yaml.safe_dump(data_with_meta, f, default_flow_style=False, sort_keys=False)
         else:
@@ -93,7 +93,7 @@ def load_collection(name: str, base_dir: Optional[Path] = None) -> dict:
 
     for path in candidates:
         if path.exists():
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 if path.suffix == ".json":
                     return json.load(f)
                 else:

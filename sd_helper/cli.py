@@ -63,7 +63,7 @@ profiles:
 
 
 @click.group()
-@click.version_option(version="0.1.6")
+@click.version_option(version="0.1.7")
 def cli():
     """SD-Helper: CLI tool for Huawei Cloud Service Delivery Engineers."""
     pass
@@ -81,7 +81,7 @@ def init(local, force):
         click.echo("Use --force to overwrite.")
         return
 
-    config_path.write_text(SAMPLE_CONFIG)
+    config_path.write_text(SAMPLE_CONFIG, encoding="utf-8")
     click.echo(f"Config written to: {config_path}")
     click.echo("Edit the file and fill in your credentials before use.")
 

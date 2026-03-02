@@ -161,14 +161,14 @@ def list_templates() -> list[str]:
 
 def save_template(template: dict, path: Path) -> Path:
     """Save template to a YAML file."""
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         yaml.safe_dump(template, f, default_flow_style=False, sort_keys=False)
     return path
 
 
 def load_template(path: Path) -> dict:
     """Load template from a YAML file."""
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 

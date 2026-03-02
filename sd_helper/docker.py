@@ -57,13 +57,13 @@ def find_matching_file(directory: str, pattern: str) -> Optional[str]:
 
 def load_progress(progress_file: str = PROGRESS_FILE) -> dict:
     if os.path.exists(progress_file):
-        with open(progress_file) as f:
+        with open(progress_file, encoding="utf-8") as f:
             return json.load(f)
     return {}
 
 
 def save_progress(progress: dict, progress_file: str = PROGRESS_FILE):
-    with open(progress_file, "w") as f:
+    with open(progress_file, "w", encoding="utf-8") as f:
         json.dump(progress, f, indent=2)
 
 

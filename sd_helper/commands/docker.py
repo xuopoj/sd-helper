@@ -71,7 +71,7 @@ def upload_images(config_file, directory, dry_run, validate, reset, reset_all):
     if not os.path.exists(config_file):
         raise click.ClickException(f"Config file not found: {config_file}")
 
-    with open(config_file) as f:
+    with open(config_file, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 
     manifest_file = cfg.get("assets_file")

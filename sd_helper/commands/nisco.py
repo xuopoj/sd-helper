@@ -188,7 +188,7 @@ def ocr_run(excel_file, images_dir, model, profile, prompt, prompt_file, no_veri
 
     # Determine prompt
     if prompt_file:
-        effective_prompt = Path(prompt_file).read_text().strip()
+        effective_prompt = Path(prompt_file).read_text(encoding="utf-8").strip()
     elif prompt:
         effective_prompt = prompt
     else:

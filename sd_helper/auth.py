@@ -47,7 +47,7 @@ def load_raw_config() -> dict:
     """Load raw config file content."""
     config_path = get_global_config_file()
     if config_path.exists():
-        with open(config_path) as f:
+        with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
             return data if data else {"default_profile": "default", "profiles": {}}
     return {"default_profile": "default", "profiles": {}}
@@ -56,7 +56,7 @@ def load_raw_config() -> dict:
 def save_raw_config(raw_config: dict) -> Path:
     """Save raw config to file."""
     config_path = get_global_config_file()
-    with open(config_path, "w") as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         yaml.safe_dump(raw_config, f, default_flow_style=False, sort_keys=False)
     return config_path
 
@@ -94,7 +94,7 @@ def load_local_config(profile: str = None) -> dict:
     if not local_path:
         return {}
 
-    with open(local_path) as f:
+    with open(local_path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
         if not data:
             return {}
@@ -145,7 +145,7 @@ def save_global_config(config: dict, profile: str = None) -> Path:
 def save_local_config(config: dict) -> Path:
     """Save configuration to local .sd-helper.yaml."""
     config_path = Path.cwd() / ".sd-helper.yaml"
-    with open(config_path, "w") as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         yaml.safe_dump(config, f, default_flow_style=False, sort_keys=False)
     return config_path
 
@@ -175,7 +175,7 @@ def load_cached_token(profile: str = None) -> Optional[dict]:
     if not cache_file.exists():
         return None
 
-    with open(cache_file) as f:
+    with open(cache_file, encoding="utf-8") as f:
         cache = json.load(f)
 
     expires_at = datetime.fromisoformat(cache.get("expires_at", ""))
@@ -204,7 +204,7 @@ def save_token_cache(
         "iam_url": iam_url,
         "cached_at": datetime.now().isoformat(),
     }
-    with open(get_token_cache_file(profile), "w") as f:
+    with open(get_token_cache_file(profile), "w", encoding="utf-8") as f:
         json.dump(cache, f, indent=2)
 
 

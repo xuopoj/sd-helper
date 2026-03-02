@@ -118,13 +118,13 @@ def find_matching_file(directory: str, pattern: str) -> Optional[str]:
 
 def load_progress() -> dict:
     if os.path.exists(PROGRESS_FILE):
-        with open(PROGRESS_FILE) as f:
+        with open(PROGRESS_FILE, encoding="utf-8") as f:
             return json.load(f)
     return {}
 
 
 def save_progress(progress: dict):
-    with open(PROGRESS_FILE, "w") as f:
+    with open(PROGRESS_FILE, "w", encoding="utf-8") as f:
         json.dump(progress, f, indent=2)
 
 
@@ -269,7 +269,7 @@ def main():
         log.error("Config file not found: %s", args.config)
         sys.exit(1)
 
-    with open(args.config) as f:
+    with open(args.config, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 
     manifest_file = cfg.get("assets_file")

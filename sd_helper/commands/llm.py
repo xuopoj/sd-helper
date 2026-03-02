@@ -134,7 +134,7 @@ def chat(message, model, endpoint, profile, temperature, max_tokens, no_stream, 
         for file_path in files:
             path = Path(file_path)
             try:
-                content = path.read_text()
+                content = path.read_text(encoding="utf-8")
                 file_parts.append(content)
                 if debug:
                     click.echo(f"[DEBUG] Loaded file: {path.name} ({len(content)} chars)", err=True)
@@ -266,9 +266,10 @@ def _send_chat(
 
 OCR_PROMPT = (
     "以下两张图片是同一张标签的正向和旋转180度版本。"
-    "标签黑色方块上有两组手写白色数字：短码（2位+空格+3位，如'91 403'）和长码（6位连续，如'266017'，长码前两位代表年份，一般为25或26等）。"
-    "请判断哪张是正向（数字笔画自然可读），并从正向图片中识别数字。"
-    "只返回JSON，格式为：{\"short_code\": \"XX XXX\", \"long_code\": \"XXXXXX\"}"
+    "标签黑色方块上有两组手写白色数字：短码（2位+空格+3位，共5位）和长码（6位连续，长码前两位代表年份，一般为25或26等）。"
+    "请判断哪张是正向（数字笔画自然可读），并从正向图片中识别数字，图片内容仅有数字，没有字母。"
+    "如果图片中没有清晰可见的数字标签，返回 {\"short_code\": null, \"long_code\": null, \"reason\": \"原因\"}。"
+    "只返回JSON，格式为：{\"short_code\": \"XX XXX\", \"long_code\": \"XXXXXX\", \"reason\": \"XXXX\"}"
 )
 
 
@@ -346,6 +347,12 @@ def ocr(images, model, profile, no_verify, debug):
             data = json.loads(response) if response else {}
         except json.JSONDecodeError:
             data = {"raw": response}
+        # Fix short_code order: ensure format is "XX XXX" (2 digits + 3 digits)
+        short = data.get("short_code")
+        if short and " " in short:
+            parts = short.split(" ")
+            if len(parts) == 2 and len(parts[0]) == 3 and len(parts[1]) == 2:
+                data["short_code"] = f"{parts[1]} {parts[0]}"
         data["file"] = Path(image_path).name
         results.append(data)
 
